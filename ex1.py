@@ -1,2 +1,3 @@
 import streamlit as st
-st.title('Welcom to Joanne's first app')
+st.title(2-7')
+st.title('내일 쉰다!')
