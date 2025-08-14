@@ -1,49 +1,35 @@
 import streamlit as st
 
-# 페이지 설정
-st.set_page_config(page_title="🎵 MBTI & 학년별 음악 추천", page_icon="🎧", layout="centered")
+# 페이지 기본 설정
+st.set_page_config(page_title="🎵 학년별 최신 음악 추천", page_icon="🎧", layout="centered")
 
 # 제목
-st.title("🎵 MBTI & 학년별 맞춤 음악 추천 🌟")
-st.write("당신의 **MBTI**와 **학년**을 선택하면, 요즘 HOT🔥한 음악 5곡을 추천해드립니다! 💃🕺")
-
-# MBTI 리스트
-mbti_list = [
-    "ISTJ", "ISFJ", "INFJ", "INTJ",
-    "ISTP", "ISFP", "INFP", "INTP",
-    "ESTP", "ESFP", "ENFP", "ENTP",
-    "ESTJ", "ESFJ", "ENFJ", "ENTJ"
-]
+st.title("🎵 학년별 최신 인기 음악 추천 💃🕺")
+st.write("🏫 학년을 선택하면, 요즘 **HOT🔥**한 음악 5곡을 추천해드려요! 🎶")
 
 # 학년 리스트
 grade_list = ["중1", "중2", "중3", "고1", "고2", "고3"]
 
-# MBTI+학년별 추천 음악 데이터 (예시)
-# 실사용 시 최신 곡으로 업데이트 가능
+# 학년별 추천 음악 데이터 (예시)
 music_recommendations = {
-    ("ISTJ", "중1"): ["🎤 NewJeans - Super Shy", "🎧 IVE - I AM", "💃 BLACKPINK - Pink Venom", "🎶 세븐틴 - Super", "🔥 Stray Kids - S-Class"],
-    ("ENFP", "고3"): ["🎤 BTS - Dynamite", "🎧 aespa - Spicy", "💃 TWICE - Set Me Free", "🎶 NewJeans - OMG", "🔥 ITZY - Cake"],
-    # 모든 조합을 채우려면 여기서 확장
+    "중1": ["🎤 NewJeans - Super Shy", "💃 IVE - I AM", "🔥 Stray Kids - S-Class", "🎧 LE SSERAFIM - Eve, Psyche & The Bluebeard’s wife", "🌟 aespa - Spicy"],
+    "중2": ["🎶 NewJeans - OMG", "🎤 BTS - Dynamite", "💃 BLACKPINK - Pink Venom", "🎧 ITZY - Cake", "🌈 SEVENTEEN - Super"],
+    "중3": ["🔥 Stray Kids - God's Menu", "🎤 NewJeans - Hype Boy", "💃 TWICE - Set Me Free", "🎧 IVE - Love Dive", "🌟 aespa - Next Level"],
+    "고1": ["🎶 BTS - Butter", "🎤 LE SSERAFIM - Unforgiven", "💃 ITZY - Wannabe", "🎧 BLACKPINK - Shut Down", "🌈 NewJeans - Attention"],
+    "고2": ["🔥 IVE - After LIKE", "🎤 SEVENTEEN - HOT", "💃 TWICE - Fancy", "🎧 aespa - Savage", "🌟 BTS - Boy With Luv"],
+    "고3": ["🎶 NewJeans - Ditto", "🎤 BLACKPINK - How You Like That", "💃 ITZY - Not Shy", "🎧 BTS - Idol", "🌈 IVE - Eleven"]
 }
 
-# 선택 입력
-col1, col2 = st.columns(2)
-with col1:
-    selected_mbti = st.selectbox("💡 MBTI 선택", mbti_list)
-with col2:
-    selected_grade = st.selectbox("🏫 학년 선택", grade_list)
+# 학년 선택
+selected_grade = st.selectbox("🏫 학년을 선택하세요!", grade_list)
 
 # 추천 버튼
 if st.button("🎁 음악 추천 받기 🎁"):
-    key = (selected_mbti, selected_grade)
-    if key in music_recommendations:
-        st.subheader(f"🌟 {selected_mbti} | {selected_grade} 추천 음악 🌟")
-        for song in music_recommendations[key]:
-            st.markdown(f"- {song}")
-        st.balloons()
-    else:
-        st.warning("😅 아직 해당 조합의 음악 데이터가 없습니다. 곧 업데이트할게요!")
+    st.subheader(f"🌟 {selected_grade} 추천 음악 TOP 5 🌟")
+    for song in music_recommendations[selected_grade]:
+        st.markdown(f"- {song}")
+    st.balloons()
 
 # 하단 안내
 st.write("---")
-st.info("💡 **Tip:** 음악은 취향에 따라 다를 수 있어요. 여러 곡 들어보고 마음에 드는 걸 찾아보세요! 🎧🎵")
+st.info("💡 **Tip:** 추천 음악은 매달 업데이트됩니다! 🎧")
