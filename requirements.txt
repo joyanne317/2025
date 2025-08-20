@@ -3,7 +3,7 @@
 """
 여고생 대상 고민상담 웹앱 (Streamlit)
 - 생년월일 입력 → 별자리/간단 사주풍(오행/띠) 추정
-- 4개 카테고리: 학업, 연애, 운세, 진로상담
+- 4개 카테고리: 학업, 진로, 운세, 연애 및 인간관계
 - 카테고리별 맞춤 조언/해결책 생성 + 할 일 체크리스트
 - 태어난 "달" × 카테고리 조합(12 × 4 = 48)에 맞춘 심신 안정 배경음악
     - 1) 사용자 업로드(권장): mp3/wav/flac 등 48개 파일 매핑
@@ -13,11 +13,9 @@
 사용법
 - streamlit run app.py
 - 좌측 사이드바에서 생년월일, 카테고리, 고민 입력 후 결과 보기
-- BGM: 업로드/URL/내장 중 선택. 업로드는 파일명을 "MM-카테고리-제목.ext" 규칙 추천 (예: 03-학업-봄의_연습곡.mp3)
 """
 
 import io
-import math
 import datetime as dt
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Optional
@@ -26,7 +24,7 @@ import numpy as np
 import streamlit as st
 
 # ----------------------------- 상수/유틸 -----------------------------
-CATEGORIES = ["학업", "연애", "운세", "진로상담"]
+CATEGORIES = ["학업", "진로", "운세", "연애 및 인간관계"]
 MONTHS_KR = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
 @dataclass
@@ -40,7 +38,6 @@ class UserProfile:
 # ----------------------------- 별자리/띠/오행 -----------------------------
 
 def western_zodiac(d: dt.date) -> str:
-    # 날짜 경계는 일반적 기준 사용
     zds = [
         ((1, 20), "물병자리"), ((2, 19), "물고기자리"), ((3, 21), "양자리"),
         ((4, 20), "황소자리"), ((5, 21), "쌍둥이자리"), ((6, 22), "게자리"),
@@ -56,14 +53,12 @@ def western_zodiac(d: dt.date) -> str:
 
 
 def korean_zodiac_animal(year: int) -> str:
-    # 0:쥐… 11:돼지 — 2008(쥐) 기준
     animals = ["쥐", "소", "호랑이", "토끼", "용", "뱀", "말", "양", "원숭이", "닭", "개", "돼지"]
     idx = (year - 2008) % 12
     return animals[idx]
 
 
 def element_from_month(month: int) -> str:
-    # 간단 오행 매핑 (월기준)
     mapping = {
         1: "수", 2: "수", 3: "목", 4: "목", 5: "화", 6: "화",
         7: "토", 8: "토", 9: "금", 10: "금", 11: "수", 12: "수",
@@ -78,7 +73,6 @@ def seed_rng(date: dt.date, category: str) -> np.random.Generator:
 
 
 def advice_blocks(profile: UserProfile, category: str, concern: str) -> Tuple[str, List[str], List[str]]:
-    """간결 조언(요약), 실행 체크리스트, 위로/격려 메시지 반환"""
     rng = seed_rng(profile.birthdate, category)
     tone_words = {
         "수": ("차분함", "정리"),
@@ -90,174 +84,69 @@ def advice_blocks(profile: UserProfile, category: str, concern: str) -> Tuple[st
     t1, t2 = tone_words.get(profile.element, ("균형", "정리"))
 
     if category == "학업":
-        summary = f"{profile.zodiac}의 성향을 살려 {t1}하게 루틴을 잡아보자. 핵심은 {t2}와 가벼운 반복이다."
+        summary = f"{profile.zodiac}의 성향을 살려 {t1}하게 공부 루틴을 잡아보자. 핵심은 {t2}와 반복이다."
         tasks = [
-            "오늘 25분 × 3세트 집중(포모도로)",
-            f"취약 과목 1개만 선택해 핵심 개념 3개 정리 ({profile.element}의 키워드 활용)",
-            "학습 루틴(시작 시간/장소) 고정 — 3일만 실험",
-            "내일 아침 확인 테스트 5문제 만들기",
+            "25분 집중 공부 × 3세트", 
+            f"취약 과목에서 개념 3개 정리 ({profile.element} 성향 반영)",
+            "매일 같은 시간·장소 학습 시도",
+            "다음날 아침 스스로 테스트 만들기"
         ]
         support = [
-            "완벽보다 진행이 더 중요해. 작은 승리를 쌓자.",
-            f"{profile.birthdate.month}월의 흐름엔 새 루틴이 잘 붙는 시기야.",
+            "작은 성취가 큰 변화를 만든다.",
+            f"{profile.birthdate.month}월은 새 습관이 잘 자리잡는 시기야."
         ]
 
-    elif category == "연애":
-        summary = f"소통의 온도를 {t1}하게 유지하자. 솔직하되, 속도를 {t2}로 조절하기."
+    elif category == "진로":
+        summary = f"{t1}한 탐색과 {t2}가 진로의 실마리를 줄 거야."
         tasks = [
-            "메시지/대화에서 '사실 나는…'으로 시작하는 1문장 솔직함",
-            "상대 강점 1개 칭찬 + 구체 예시", 
-            "바라는 점 1개를 I-Message로 말하기", 
-            "서로 약속 1개(시간/연락 빈도) 합의",
+            "이번 주 흥미로웠던 순간 3개 기록",
+            "관심 직업/전공 키워드 5개 조사",
+            "학교·지역 행사 1개 참여 신청",
+            "선생님·선배에게 질문하기"
         ]
         support = [
-            "관계는 팀플이야. 너만의 페이스를 존중해도 좋아.",
-            f"{profile.zodiac}의 매력 포인트를 믿어봐 — 네가 생각하는 것보다 충분해.",
+            "진로는 한 번에 정답을 찾는 게 아니야.",
+            "작은 경험들이 미래를 연결해 준다."
         ]
 
     elif category == "운세":
-        summary = f"오늘의 키워드는 '{t1}'. 과감한 결정보다 작은 정돈이 행운을 부른다."
+        summary = f"오늘의 키워드는 '{t1}'. 작은 정리가 좋은 운을 불러."
         tasks = [
-            "책상/가방 10분 정리 (버릴 것 3개)",
-            "할 일 3가지만 써서 우선순위 표시",
-            "물 1컵 더 마시기, 10분 산책",
-            "하루 평가: 잘한 일 1가지 기록",
+            "책상 10분 정리하기",
+            "할 일 3개만 정해서 우선순위 표시",
+            "10분 산책 후 마음 정리",
+            "오늘 잘한 일 1가지 기록"
         ]
         support = [
-            "운은 준비된 사람을 좋아해. 정리=준비야.",
-            f"{profile.element} 기운이 높은 날. 리듬을 타보자.",
+            "운은 준비된 마음을 좋아해.",
+            f"{profile.element} 기운이 강한 날이야."
         ]
 
-    else:  # 진로상담
-        summary = f"관심의 흔적을 모아보기. {t1}한 탐색과 {t2}가 진로 힌트를 준다."
+    else:  # 연애 및 인간관계
+        summary = f"관계를 {t1}하게, 속도는 {t2}로 조절해 보자."
         tasks = [
-            "이번 주 '재밌었다' 순간 3개 기록",
-            "직업/전공 키워드 5개 뽑아 위키/유튜브 15분 스캔",
-            "학교/지역 행사 1개 참여 신청",
-            "선배/교사에게 1개 질문 보내기",
+            "대화에서 솔직한 한 문장 표현하기",
+            "상대방 장점 1가지 구체적으로 칭찬하기",
+            "나의 바람을 I-Message로 전달",
+            "약속 1개(시간·연락 빈도) 합의"
         ]
         support = [
-            "진로는 발견형 퍼즐. 조각을 모으면 그림이 보여.",
-            "작게 움직이는 게 제일 큰 힌트가 돼.",
+            "관계는 함께 만들어가는 거야.",
+            "너의 진심이 충분히 전달될 거야."
         ]
 
-    # 고민 텍스트가 있으면 요약에 살짝 반영
     if concern.strip():
         summary += f" (고민: '{concern[:30] + ('…' if len(concern) > 30 else '')}')"
 
-    # RNG로 1~2개 항목을 강조
     if len(tasks) > 0:
         idx = rng.integers(0, len(tasks))
         tasks[idx] = "✅ " + tasks[idx]
 
     return summary, tasks, support
 
-# ----------------------------- 48개 BGM 매핑 -----------------------------
-
-@dataclass
-class TrackInfo:
-    title: str
-    url: Optional[str]  # 원격 URL(있으면 사용)
-    file_key: Optional[str]  # 업로드 파일 매칭 키(없으면 None)
-
-# 기본 매핑: "월(1~12)-카테고리" → 트랙 슬롯
-# URL은 빈 값(None)으로 두고, Config 탭에서 사용자 정의 가능
-
-def default_music_map() -> Dict[str, TrackInfo]:
-    mapping: Dict[str, TrackInfo] = {}
-    for m in range(1, 13):
-        for c in CATEGORIES:
-            key = f"{m:02d}-{c}"
-            # 타이틀은 월/카테고리 기반으로 자동 생성
-            title = f"{MONTHS_KR[m-1]} · {c} · Calming"
-            mapping[key] = TrackInfo(title=title, url=None, file_key=key)
-    return mapping
-
-# ----------------------------- 합성 BGM 생성기 -----------------------------
-
-def adsr_envelope(n: int, sr: int, a=0.05, d=0.1, s=0.7, r=0.2) -> np.ndarray:
-    a_n = int(a * sr)
-    d_n = int(d * sr)
-    r_n = int(r * sr)
-    s_n = n - (a_n + d_n + r_n)
-    if s_n < 0:
-        s_n = 0
-    env = np.zeros(n)
-    # Attack
-    if a_n > 0:
-        env[:a_n] = np.linspace(0, 1, a_n)
-    # Decay
-    if d_n > 0:
-        env[a_n:a_n+d_n] = np.linspace(1, s, d_n)
-    # Sustain
-    env[a_n+d_n:a_n+d_n+s_n] = s
-    # Release
-    if r_n > 0:
-        env[-r_n:] = np.linspace(s, 0, r_n)
-    return env
-
-
-def synth_ambient(duration_s: int, seed: int, base_hz: float = 220.0, sr: int = 44100) -> bytes:
-    rng = np.random.default_rng(seed)
-    t = np.linspace(0, duration_s, duration_s * sr, endpoint=False)
-
-    # 2~3개의 사인파 + 서브베이스 + 소량의 노이즈
-    freqs = [base_hz,
-             base_hz * (5/4),  # 장3도
-             base_hz * (3/2)]  # 완전5도
-    # 월/카테고리마다 미세 detune
-    detunes = rng.normal(0, 0.3, size=len(freqs))
-
-    sig = np.zeros_like(t)
-    for f, dtn in zip(freqs, detunes):
-        sig += 0.33 * np.sin(2 * np.pi * (f + dtn) * t)
-
-    # 서브베이스
-    sig += 0.1 * np.sin(2 * np.pi * (base_hz/2) * t)
-
-    # 부드러운 노이즈 패드
-    noise = rng.normal(0, 0.02, size=len(t))
-    sig += noise
-
-    # 간단한 저역 통과 느낌: 이동 평균
-    k = int(sr * 0.01)
-    if k > 1:
-        kernel = np.ones(k) / k
-        sig = np.convolve(sig, kernel, mode='same')
-
-    # ADSR 적용
-    env = adsr_envelope(len(sig), sr, a=0.2, d=0.6, s=0.6, r=0.8)
-    sig = sig * env
-
-    # 정규화
-    sig = sig / (np.max(np.abs(sig)) + 1e-9) * 0.9
-
-    # WAV로 인메모리 저장
-    import wave, struct
-    buf = io.BytesIO()
-    with wave.open(buf, 'wb') as wf:
-        wf.setnchannels(2)
-        wf.setsampwidth(2)  # 16-bit
-        wf.setframerate(sr)
-        # 스테레오: L=원신호, R=약간 위상 이동
-        phase_shift = int(0.002 * sr)
-        r_sig = np.roll(sig, phase_shift)
-        interleaved = np.vstack((sig, r_sig)).T
-        for sL, sR in interleaved:
-            wf.writeframesraw(struct.pack('<h', int(sL * 32767)))
-            wf.writeframesraw(struct.pack('<h', int(sR * 32767)))
-    return buf.getvalue()
-
-# ----------------------------- UI 구성 -----------------------------
+# ----------------------------- Streamlit UI -----------------------------
 
 st.set_page_config(page_title="고민상담 — 여고생 맞춤", page_icon="💬", layout="wide")
-
-if "music_map" not in st.session_state:
-    st.session_state.music_map = default_music_map()
-if "uploaded_audio" not in st.session_state:
-    st.session_state.uploaded_audio: Dict[str, bytes] = {}
-if "chat" not in st.session_state:
-    st.session_state.chat: List[Tuple[str, str]] = []  # (role, text)
 
 st.title("여고생 맞춤 고민상담 💬✨")
 
@@ -266,43 +155,8 @@ with st.sidebar:
     name = st.text_input("이름 (선택)", placeholder="닉네임도 좋아요")
     birth = st.date_input("생년월일", value=dt.date(2007, 1, 1), format="YYYY-MM-DD")
     category = st.selectbox("상담 카테고리", CATEGORIES, index=0)
-    concern = st.text_area("지금 고민 한 줄", placeholder="예: 수학 점수가 안 오르고 있어요…")
+    concern = st.text_area("지금 고민 한 줄", placeholder="예: 진로가 막막해요…")
 
-    # BGM 설정
-    st.subheader("배경음악 설정 🎧")
-    bgm_mode = st.radio("재생 방식", ["내장 생성 BGM", "오디오 업로드", "URL 매핑"], index=0)
-
-    if bgm_mode == "오디오 업로드":
-        up_files = st.file_uploader(
-            "최대 48개 업로드 (파일명: MM-카테고리-제목.ext 권장)",
-            type=["mp3", "wav", "flac", "ogg"], accept_multiple_files=True,
-        )
-        if up_files:
-            for f in up_files:
-                key_guess = None
-                try:
-                    fname = f.name
-                    # 파일명에서 키 추출: 01-학업-...
-                    parts = fname.split("-")
-                    if len(parts) >= 2 and parts[0].isdigit():
-                        mon = int(parts[0])
-                        cat = parts[1].split(".")[0]
-                        if cat in CATEGORIES and 1 <= mon <= 12:
-                            key_guess = f"{mon:02d}-{cat}"
-                except Exception:
-                    pass
-                raw = f.read()
-                if key_guess:
-                    st.session_state.uploaded_audio[key_guess] = raw
-                else:
-                    # 매칭 실패 시 보관함에 넣고, Config 탭에서 수동 매핑 유도
-                    st.session_state.uploaded_audio[f.name] = raw
-            st.success(f"업로드 완료: {len(up_files)}개 파일")
-
-    elif bgm_mode == "URL 매핑":
-        st.info("아래 '설정/관리' 탭에서 월×카테고리별 URL을 입력하세요.")
-
-# 프로필 생성
 profile = UserProfile(
     name=name.strip() or "익명",
     birthdate=birth,
@@ -311,96 +165,25 @@ profile = UserProfile(
     element=element_from_month(birth.month),
 )
 
-# 메인 레이아웃
-colL, colR = st.columns([7, 5], gap="large")
+st.subheader("🔮 프로필")
+st.markdown(
+    f"""
+    - 이름: **{profile.name}**  
+    - 생년월일: **{profile.birthdate.strftime('%Y-%m-%d')}**  
+    - 별자리: **{profile.zodiac}** · 띠: **{profile.zodiac_animal}띠** · 오행: **{profile.element}**
+    """
+)
 
-with colL:
-    st.subheader("🔮 프로필")
-    st.markdown(
-        f"""
-        - 이름: **{profile.name}**  
-        - 생년월일: **{profile.birthdate.strftime('%Y-%m-%d')}**  
-        - 별자리: **{profile.zodiac}** · 12띠: **{profile.zodiac_animal}띠** · 오행(월기준): **{profile.element}**
-        """
-    )
+st.subheader("🧠 상담 결과")
+summary, tasks, support = advice_blocks(profile, category, concern)
+st.markdown(f"**요약:** {summary}")
 
-    st.subheader("🧠 상담 결과")
-    summary, tasks, support = advice_blocks(profile, category, concern)
-    st.markdown(f"**요약:** {summary}")
+st.markdown("**실행 체크리스트**")
+for t in tasks:
+    st.checkbox(t, key=f"chk-{category}-{t}")
 
-    st.markdown("**실행 체크리스트**")
-    for t in tasks:
-        st.checkbox(t, key=f"chk-{category}-{t}")
+st.markdown("**응원/격려**")
+for s in support:
+    st.caption("• " + s)
 
-    st.markdown("**응원/격려**")
-    for s in support:
-        st.caption("• " + s)
-
-    # 호흡 가이드
-    with st.expander("호흡 가이드(4-4-4 박스호흡)"):
-        st.write("4초 들이마시고, 4초 멈추고, 4초 내쉬기 — 4회 반복")
-        st.progress(0.0, text="3초 후 시작…")
-
-    # 간단 메모/일기
-    st.subheader("📝 오늘의 한 줄 기록")
-    note = st.text_area("오늘 느낀 점이나 결심을 적어보자", key="note")
-    if st.button("기록 저장"):
-        st.session_state.chat.append(("user", note))
-        st.success("저장했어요. 작은 기록이 큰 변화를 만듭니다 ✨")
-
-with colR:
-    st.subheader("🎧 맞춤 배경음악")
-    mm_key = f"{profile.birthdate.month:02d}-{category}"
-    slot = st.session_state.music_map.get(mm_key)
-
-    tab1, tab2 = st.tabs(["재생", "설정/관리"])
-
-    with tab1:
-        # 재생 우선순위: 업로드 → URL → 내장 합성
-        played = False
-
-        # 1) 업로드 매칭
-        if mm_key in st.session_state.uploaded_audio:
-            st.write(f"업로드 매칭: **{slot.title}**")
-            st.audio(st.session_state.uploaded_audio[mm_key])
-            played = True
-        else:
-            # 2) URL 매핑
-            if slot and slot.url:
-                st.write(f"URL 재생: **{slot.title}**")
-                st.audio(slot.url)
-                played = True
-
-        # 3) 내장 합성 BGM (기본)
-        if not played:
-            st.write(f"내장 생성 BGM: **{slot.title if slot else mm_key}**")
-            # 월/카테고리 → 씨드/주파수
-            seed = int(profile.birthdate.month * 10 + CATEGORIES.index(category) + 1)
-            base = 174.61 + 12.0 * (profile.birthdate.month % 3)  # 달에 따른 음색 변화
-            wav = synth_ambient(duration_s=90, seed=seed, base_hz=base)
-            st.audio(wav, format="audio/wav")
-            st.caption("※ 실제 클래식 음원 업로드/URL 등록 시 자동 대체됩니다.")
-
-    with tab2:
-        st.markdown("**48개 슬록 미리보기** (월×카테고리)")
-        sel_month = st.select_slider("월 선택", options=list(range(1, 13)), value=profile.birthdate.month)
-        for c in CATEGORIES:
-            key = f"{sel_month:02d}-{c}"
-            item = st.session_state.music_map[key]
-            st.text_input(f"{MONTHS_KR[sel_month-1]} · {c} · 제목", value=item.title, key=f"title-{key}")
-            new_url = st.text_input(f"{key} URL(mp3/ogg 등)", value=item.url or "", key=f"url-{key}")
-            # 세션 반영
-            st.session_state.music_map[key] = TrackInfo(title=st.session_state[f"title-{key}"], url=new_url or None, file_key=key)
-            st.divider()
-
-# ----------------------------- 하단: 명확한 고지 -----------------------------
-with st.expander("ℹ️ 해석/조언 고지"):
-    st.write("""
-    이 웹앱의 해석은 별자리·오행을 '영감'으로 활용한 코칭입니다. 
-    실제 의사결정은 본인의 판단과 주변 어른/전문가와의 상의를 바탕으로 해주세요.
-    건강/정신건강/법률/재무 등 전문 분야의 문제는 반드시 해당 전문가의 도움을 받으세요.
-    """)
-
-# 푸터
 st.caption("Made with ❤️ for 학생 상담 · Streamlit")
-
