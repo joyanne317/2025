@@ -1,189 +1,73 @@
 # app.py
 # -*- coding: utf-8 -*-
 """
-여고생 대상 고민상담 웹앱 (Streamlit)
-- 생년월일 입력 → 별자리/간단 사주풍(오행/띠) 추정
-- 4개 카테고리: 학업, 진로, 운세, 연애 및 인간관계
-- 카테고리별 맞춤 조언/해결책 생성 + 할 일 체크리스트
-- 태어난 "달" × 카테고리 조합(12 × 4 = 48)에 맞춘 심신 안정 배경음악
-    - 1) 사용자 업로드(권장): mp3/wav/flac 등 48개 파일 매핑
-    - 2) URL 재생: 각 조합에 URL을 설정 가능 (config 탭)
-    - 3) 내장 생성 BGM: 합성(사인파/서브베이스/앰비언스)로 즉석 생성 (기본값)
+Streamlit 원소주기율표 웹앱
+- 118개 원소를 주기율표 레이아웃(18열)로 표시
+- 각 원소를 클릭하면 5가지 정보 표시: [실생활 사례, 원소 이름, 원소번호, 원소 특징, 미래 활용 방향]
+- 좌측 검색/필터: 심볼, 이름, 그룹, 주기, 계열(알카리/할로겐/전이금속 등)
+- 데이터는 코드 내에 내장(오프라인 동작). 필요 시 CSV로 내보내거나 수정 가능.
 
-사용법
-- streamlit run app.py
-- 좌측 사이드바에서 생년월일, 카테고리, 고민 입력 후 결과 보기
+
+실행방법
+$ streamlit run app.py
 """
 
-import io
-import datetime as dt
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
 
-import numpy as np
 import streamlit as st
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
-# ----------------------------- 상수/유틸 -----------------------------
-CATEGORIES = ["학업", "진로", "운세", "연애 및 인간관계"]
-MONTHS_KR = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
+# ------------------------- 기본 데이터 -------------------------
 @dataclass
-class UserProfile:
-    name: str
-    birthdate: dt.date
-    zodiac: str  # 서양 별자리
-    zodiac_animal: str  # 12띠(간단)
-    element: str  # 오행(간단 매핑)
-
-# ----------------------------- 별자리/띠/오행 -----------------------------
-
-def western_zodiac(d: dt.date) -> str:
-    zds = [
-        ((1, 20), "물병자리"), ((2, 19), "물고기자리"), ((3, 21), "양자리"),
-        ((4, 20), "황소자리"), ((5, 21), "쌍둥이자리"), ((6, 22), "게자리"),
-        ((7, 23), "사자자리"), ((8, 23), "처녀자리"), ((9, 23), "천칭자리"),
-        ((10, 24), "전갈자리"), ((11, 23), "사수자리"), ((12, 22), "염소자리"),
-    ]
-    m, day = d.month, d.day
-    for (edge_m, edge_d), name in zds:
-        if (m, day) < (edge_m, edge_d):
-            return prev_name
-        prev_name = name
-    return "염소자리"
+class Element:
+Z: int
+symbol: str
+name: str
+period: int
+group: int
 
 
-def korean_zodiac_animal(year: int) -> str:
-    animals = ["쥐", "소", "호랑이", "토끼", "용", "뱀", "말", "양", "원숭이", "닭", "개", "돼지"]
-    idx = (year - 2008) % 12
-    return animals[idx]
-
-
-def element_from_month(month: int) -> str:
-    mapping = {
-        1: "수", 2: "수", 3: "목", 4: "목", 5: "화", 6: "화",
-        7: "토", 8: "토", 9: "금", 10: "금", 11: "수", 12: "수",
-    }
-    return mapping.get(month, "토")
-
-# ----------------------------- 조언 생성 -----------------------------
-
-def seed_rng(date: dt.date, category: str) -> np.random.Generator:
-    seed = int(date.strftime("%m%d")) * 100 + (CATEGORIES.index(category) + 1)
-    return np.random.default_rng(seed)
-
-
-def advice_blocks(profile: UserProfile, category: str, concern: str) -> Tuple[str, List[str], List[str]]:
-    rng = seed_rng(profile.birthdate, category)
-    tone_words = {
-        "수": ("차분함", "정리"),
-        "목": ("성장", "계획"),
-        "화": ("추진", "용기"),
-        "토": ("집중", "꾸준함"),
-        "금": ("균형", "절제"),
-    }
-    t1, t2 = tone_words.get(profile.element, ("균형", "정리"))
-
-    if category == "학업":
-        summary = f"{profile.zodiac}의 성향을 살려 {t1}하게 공부 루틴을 잡아보자. 핵심은 {t2}와 반복이다."
-        tasks = [
-            "25분 집중 공부 × 3세트", 
-            f"취약 과목에서 개념 3개 정리 ({profile.element} 성향 반영)",
-            "매일 같은 시간·장소 학습 시도",
-            "다음날 아침 스스로 테스트 만들기"
-        ]
-        support = [
-            "작은 성취가 큰 변화를 만든다.",
-            f"{profile.birthdate.month}월은 새 습관이 잘 자리잡는 시기야."
-        ]
-
-    elif category == "진로":
-        summary = f"{t1}한 탐색과 {t2}가 진로의 실마리를 줄 거야."
-        tasks = [
-            "이번 주 흥미로웠던 순간 3개 기록",
-            "관심 직업/전공 키워드 5개 조사",
-            "학교·지역 행사 1개 참여 신청",
-            "선생님·선배에게 질문하기"
-        ]
-        support = [
-            "진로는 한 번에 정답을 찾는 게 아니야.",
-            "작은 경험들이 미래를 연결해 준다."
-        ]
-
-    elif category == "운세":
-        summary = f"오늘의 키워드는 '{t1}'. 작은 정리가 좋은 운을 불러."
-        tasks = [
-            "책상 10분 정리하기",
-            "할 일 3개만 정해서 우선순위 표시",
-            "10분 산책 후 마음 정리",
-            "오늘 잘한 일 1가지 기록"
-        ]
-        support = [
-            "운은 준비된 마음을 좋아해.",
-            f"{profile.element} 기운이 강한 날이야."
-        ]
-
-    else:  # 연애 및 인간관계
-        summary = f"관계를 {t1}하게, 속도는 {t2}로 조절해 보자."
-        tasks = [
-            "대화에서 솔직한 한 문장 표현하기",
-            "상대방 장점 1가지 구체적으로 칭찬하기",
-            "나의 바람을 I-Message로 전달",
-            "약속 1개(시간·연락 빈도) 합의"
-        ]
-        support = [
-            "관계는 함께 만들어가는 거야.",
-            "너의 진심이 충분히 전달될 거야."
-        ]
-
-    if concern.strip():
-        summary += f" (고민: '{concern[:30] + ('…' if len(concern) > 30 else '')}')"
-
-    if len(tasks) > 0:
-        idx = rng.integers(0, len(tasks))
-        tasks[idx] = "✅ " + tasks[idx]
-
-    return summary, tasks, support
-
-# ----------------------------- Streamlit UI -----------------------------
-
-st.set_page_config(page_title="고민상담 — 여고생 맞춤", page_icon="💬", layout="wide")
-
-st.title("여고생 맞춤 고민상담 💬✨")
-
-with st.sidebar:
-    st.header("기본 정보")
-    name = st.text_input("이름 (선택)", placeholder="닉네임도 좋아요")
-    birth = st.date_input("생년월일", value=dt.date(2007, 1, 1), format="YYYY-MM-DD")
-    category = st.selectbox("상담 카테고리", CATEGORIES, index=0)
-    concern = st.text_area("지금 고민 한 줄", placeholder="예: 진로가 막막해요…")
-
-profile = UserProfile(
-    name=name.strip() or "익명",
-    birthdate=birth,
-    zodiac=western_zodiac(birth),
-    zodiac_animal=korean_zodiac_animal(birth.year),
-    element=element_from_month(birth.month),
-)
-
-st.subheader("🔮 프로필")
-st.markdown(
-    f"""
-    - 이름: **{profile.name}**  
-    - 생년월일: **{profile.birthdate.strftime('%Y-%m-%d')}**  
-    - 별자리: **{profile.zodiac}** · 띠: **{profile.zodiac_animal}띠** · 오행: **{profile.element}**
-    """
-)
-
-st.subheader("🧠 상담 결과")
-summary, tasks, support = advice_blocks(profile, category, concern)
-st.markdown(f"**요약:** {summary}")
-
-st.markdown("**실행 체크리스트**")
-for t in tasks:
-    st.checkbox(t, key=f"chk-{category}-{t}")
-
-st.markdown("**응원/격려**")
-for s in support:
-    st.caption("• " + s)
-
-st.caption("Made with ❤️ for 학생 상담 · Streamlit")
+# Z순서 기본 목록 (심볼과 영문명)
+# — 간결성을 위해 이름은 영어 표기 사용. 필요하면 한국어 이름으로 바꿔도 됨.
+ELEMENTS_ORDERED: List[Element] = [
+Element(1, "H", "Hydrogen", 1, 1),
+Element(2, "He", "Helium", 1, 18),
+Element(3, "Li", "Lithium", 2, 1),
+Element(4, "Be", "Beryllium", 2, 2),
+Element(5, "B", "Boron", 2, 13),
+Element(6, "C", "Carbon", 2, 14),
+Element(7, "N", "Nitrogen", 2, 15),
+Element(8, "O", "Oxygen", 2, 16),
+Element(9, "F", "Fluorine", 2, 17),
+Element(10, "Ne", "Neon", 2, 18),
+Element(11, "Na", "Sodium", 3, 1),
+Element(12, "Mg", "Magnesium", 3, 2),
+Element(13, "Al", "Aluminium", 3, 13),
+Element(14, "Si", "Silicon", 3, 14),
+Element(15, "P", "Phosphorus", 3, 15),
+Element(16, "S", "Sulfur", 3, 16),
+Element(17, "Cl", "Chlorine", 3, 17),
+Element(18, "Ar", "Argon", 3, 18),
+Element(19, "K", "Potassium", 4, 1),
+Element(20, "Ca", "Calcium", 4, 2),
+Element(21, "Sc", "Scandium", 4, 3),
+Element(22, "Ti", "Titanium", 4, 4),
+Element(23, "V", "Vanadium", 4, 5),
+Element(24, "Cr", "Chromium", 4, 6),
+Element(25, "Mn", "Manganese", 4, 7),
+Element(26, "Fe", "Iron", 4, 8),
+Element(27, "Co", "Cobalt", 4, 9),
+Element(28, "Ni", "Nickel", 4, 10),
+Element(29, "Cu", "Copper", 4, 11),
+Element(30, "Zn", "Zinc", 4, 12),
+Element(31, "Ga", "Gallium", 4, 13),
+Element(32, "Ge", "Germanium", 4, 14),
+Element(33, "As", "Arsenic", 4, 15),
+Element(34, "Se", "Selenium", 4, 16),
+Element(35, "Br", "Bromine", 4, 17),
+Element(36, "Kr", "Krypton", 4, 18),
+Element(37, "Rb", "Rubidium", 5, 1),
+Element(38, "Sr", "Strontium", 5, 2),
+Element(39, "Y", "Yttrium", 5, 3),
+Element(40, "Zr", "Zirconium", 5, 4),
