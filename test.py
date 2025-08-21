@@ -211,17 +211,6 @@ if len(selected) >= 2:
         )
 
 # ===============================
-# 리셋 버튼
-# ===============================
-left, right = st.columns([1,3])
-with left:
-    if st.button("🔄 선택 초기화"):
-        for k in list(st.session_state.keys()):
-            if k.startswith("chk_"):
-                st.session_state[k] = False
-        st.session_state.sel = set()
-        st.experimental_rerun()
-
 with right:
     st.info("팁: 하늘색(금속) + 노란색(비·준금속)을 함께 선택하면 이온결합 예시를, "
             "노란색끼리는 공유결합, 하늘색끼리는 금속결합 예시가 나옵니다.")
