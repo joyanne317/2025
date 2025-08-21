@@ -4,7 +4,7 @@ from itertools import combinations
 # ===============================
 # 페이지 & 전역 스타일
 # ===============================
-st.set_page_config(page_title="주기율표 결합 학습 (1~5주기)", layout="wide")
+st.set_page_config(page_title="주기율표 결합 학습 (1~4주기)", layout="wide")
 
 st.markdown("""
 <style>
@@ -22,16 +22,17 @@ body { background: linear-gradient(135deg, #E9F6FF 0%, #FFFFFF 65%); }
 .cell {
   border-radius: 12px;
   padding: 6px 6px;
-  margin: 4px 2px;
+  margin: 2px 1px;
   border: 1px solid rgba(0,0,0,.08);
   box-shadow: 0 1px 6px rgba(0, 70, 140, .07);
   text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", Arial, "Helvetica Neue", Helvetica, sans-serif;
-  min-height: 44px;
+  min-height: 48px;
+  font-size: 14px;
 }
 .cell:hover { box-shadow: 0 4px 12px rgba(0, 70, 140, .12); }
-.cell .line { font-weight: 800; font-size: 13px; line-height: 1; }
+.cell .line { font-weight: 800; font-size: 14px; line-height: 1.1; }
 
 /* 정보 카드 */
 .card {
@@ -44,18 +45,19 @@ body { background: linear-gradient(135deg, #E9F6FF 0%, #FFFFFF 65%); }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🔬 주기율표 결합 학습 (1~5주기, #1~#54)")
-st.caption("금속: 하늘색, 준금속·비금속: 노란색. 칸을 토글(체크)해 선택하세요. "
+st.title("🔬 주기율표 결합 학습 (1~4주기, #1~#36)")
+st.caption("금속: 하늘색, 준금속·비금속: 노란색. 칸을 선택하면 색상이 빨간색으로 변합니다. "
            "두 개 이상 선택하면 결합 종류·특징·생성 물질의 성질을 보여줍니다.")
 
 COLOR_METAL = "#ADD8E6"
 COLOR_NONMET = "#FFF8B5"  # 준금속·비금속 공통
+COLOR_SELECTED = "#FF6B6B"
 
 def cell_color(category: str) -> str:
     return COLOR_METAL if category == "금속" else COLOR_NONMET
 
 # =========================================================
-# 1~54번(1~5주기) 원소 데이터:
+# 1~36번(1~4주기) 원소 데이터:
 # (Z, Sym, Name, Category[금속/준금속/비금속], Feature, Period, Group)
 # =========================================================
 E = [
@@ -110,38 +112,36 @@ if "sel" not in st.session_state:
     st.session_state.sel = set()
 
 # ===============================
-# 주기율표 그리드 (1~5주기, 18족)
-# None은 빈 칸
+# 주기율표 그리드 (1~4주기, 18족)
 # ===============================
 def empty_cell():
     st.write("")
 
 def render_element(sym):
     e = by_sym[sym]
-    bg = cell_color(e["Cat"])
+    selected = sym in st.session_state.sel
+    bg = COLOR_SELECTED if selected else cell_color(e["Cat"])
     st.markdown(
         f'<div class="cell" style="background:{bg}"><div class="line">#{e["Z"]} {e["Sym"]}</div></div>',
         unsafe_allow_html=True
     )
-    # 토글 체크박스 (작고 라벨 숨김)
-    checked = st.checkbox(" ", key=f"chk_{sym}", value=(sym in st.session_state.sel), label_visibility="collapsed")
+    checked = st.checkbox(" ", key=f"chk_{sym}", value=selected, label_visibility="collapsed")
     if checked: st.session_state.sel.add(sym)
     else: st.session_state.sel.discard(sym)
 
-# 실제 배치 (1~5주기)
+# 실제 배치 (1~4주기)
 period_rows = {
     1: ["H"] + [None]*16 + ["He"],
     2: ["Li","Be"] + [None]*10 + ["B","C","N","O","F","Ne"],
     3: ["Na","Mg"] + [None]*10 + ["Al","Si","P","S","Cl","Ar"],
     4: ["K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr"],
-    5: ["Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe"],
 }
 
-st.subheader("📋 주기율표 (1~5주기)")
-for period in range(1, 6):
+st.subheader("📋 주기율표 (1~4주기)")
+for period in range(1, 5):
     st.markdown(f"**{period} 주기**")
     row = period_rows[period]
-    cols = st.columns(18)
+    cols = st.columns(18, gap="small")
     for i, col in enumerate(cols):
         with col:
             sym = row[i] if i < len(row) else None
