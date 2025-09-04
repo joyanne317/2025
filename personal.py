@@ -1,35 +1,77 @@
 import streamlit as st
+import datetime
 
-# 페이지 기본 설정
-st.set_page_config(page_title="🎵 학년별 최신 음악 추천", page_icon="🎧", layout="centered")
+st.set_page_config(page_title="시험 5주 대비 플래너", layout="wide")
 
-# 제목
-st.title("🎵 학년별 최신 인기 음악 추천 💃🕺")
-st.write("🏫 학년을 선택하면, 요즘 **HOT🔥**한 음악 5곡을 추천해드려요! 🎶")
+# --- 세션 상태 초기화 ---
+if "exam_date" not in st.session_state:
+    st.session_state.exam_date = datetime.date.today()
 
-# 학년 리스트
-grade_list = ["중1", "중2", "중3", "고1", "고2", "고3"]
+if "planner" not in st.session_state:
+    st.session_state.planner = {}
 
-# 학년별 추천 음악 데이터 (예시)
-music_recommendations = {
-    "중1": ["🎤 NewJeans - Super Shy", "💃 IVE - I AM", "🔥 Stray Kids - S-Class", "🎧 LE SSERAFIM - Eve, Psyche & The Bluebeard’s wife", "🌟 aespa - Spicy"],
-    "중2": ["🎶 NewJeans - OMG", "🎤 BTS - Dynamite", "💃 BLACKPINK - Pink Venom", "🎧 ITZY - Cake", "🌈 SEVENTEEN - Super"],
-    "중3": ["🔥 Stray Kids - God's Menu", "🎤 NewJeans - Hype Boy", "💃 TWICE - Set Me Free", "🎧 IVE - Love Dive", "🌟 aespa - Next Level"],
-    "고1": ["🎶 BTS - Butter", "🎤 LE SSERAFIM - Unforgiven", "💃 ITZY - Wannabe", "🎧 BLACKPINK - Shut Down", "🌈 NewJeans - Attention"],
-    "고2": ["🔥 IVE - After LIKE", "🎤 SEVENTEEN - HOT", "💃 TWICE - Fancy", "🎧 aespa - Savage", "🌟 BTS - Boy With Luv"],
-    "고3": ["🎶 NewJeans - Ditto", "🎤 BLACKPINK - How You Like That", "💃 ITZY - Not Shy", "🎧 BTS - Idol", "🌈 IVE - Eleven"]
-}
+# --- 시험 날짜 입력 ---
+st.title("📘 시험 대비 5주 플래너")
 
-# 학년 선택
-selected_grade = st.selectbox("🏫 학년을 선택하세요!", grade_list)
+st.session_state.exam_date = st.date_input(
+    "시험 날짜를 선택하세요", 
+    st.session_state.exam_date
+)
 
-# 추천 버튼
-if st.button("🎁 음악 추천 받기 🎁"):
-    st.subheader(f"🌟 {selected_grade} 추천 음악 TOP 5 🌟")
-    for song in music_recommendations[selected_grade]:
-        st.markdown(f"- {song}")
-    st.balloons()
+today = datetime.date.today()
+d_day = (st.session_state.exam_date - today).days
+st.markdown(f"## 🗓️ D-{d_day if d_day >= 0 else 'Day'}")
 
-# 하단 안내
-st.write("---")
-st.info("💡 **Tip:** 추천 음악은 매달 업데이트됩니다! 🎧")
+# --- 5주 플래너 ---
+weeks = 5
+
+for week in range(1, weeks + 1):
+    with st.expander(f"📌 {week}주차 계획", expanded=True):
+        # 과목별 큰 계획
+        subjects = st.text_area(
+            f"{week}주차 과목별 해야할 일 (줄바꿈으로 구분)", 
+            value="\n".join(st.session_state.planner.get(week, {}).get("subjects", [])),
+            key=f"week{week}_subjects"
+        )
+
+        if week not in st.session_state.planner:
+            st.session_state.planner[week] = {"subjects": [], "days": {}}
+
+        st.session_state.planner[week]["subjects"] = subjects.split("\n") if subjects else []
+
+        # --- 일별 세부 계획 ---
+        for day in range(1, 8):
+            st.markdown(f"**{week}주차 {day}일차 (Day {(week-1)*7+day})**")
+
+            todos_key = f"week{week}_day{day}_todos"
+            todos_val = st.session_state.planner[week]["days"].get(day, {}).get("todos", "")
+
+            todos = st.text_area(
+                f"할 일 (쉼표로 구분)", 
+                value=todos_val,
+                key=todos_key
+            )
+
+            if day not in st.session_state.planner[week]["days"]:
+                st.session_state.planner[week]["days"][day] = {"todos": "", "done": []}
+
+            st.session_state.planner[week]["days"][day]["todos"] = todos
+
+            if todos:
+                todo_list = [t.strip() for t in todos.split(",") if t.strip()]
+                done_list = st.session_state.planner[week]["days"][day].get("done", [False]*len(todo_list))
+
+                new_done_list = []
+                for i, task in enumerate(todo_list):
+                    done = st.checkbox(
+                        task, 
+                        value=done_list[i] if i < len(done_list) else False, 
+                        key=f"week{week}_day{day}_task{i}"
+                    )
+                    if done:
+                        st.markdown(f"- ~~{task}~~")
+                    else:
+                        st.markdown(f"- {task}")
+                    new_done_list.append(done)
+
+                st.session_state.planner[week]["days"][day]["done"] = new_done_list
