@@ -63,15 +63,17 @@ for week in range(1, weeks + 1):
 
                 new_done_list = []
                 for i, task in enumerate(todo_list):
-                    done = st.checkbox(
-                        task, 
-                        value=done_list[i] if i < len(done_list) else False, 
-                        key=f"week{week}_day{day}_task{i}"
-                    )
-                    if done:
-                        st.markdown(f"- ~~{task}~~")
-                    else:
-                        st.markdown(f"- {task}")
-                    new_done_list.append(done)
+                    col1, col2 = st.columns([0.1, 0.9])
+                    with col1:
+                        # 동그라미 버튼 (⭕ → 완료 시 ✅)
+                        if st.button("⭕", key=f"week{week}_day{day}_taskbtn{i}"):
+                            done_list[i] = not done_list[i]
+                    with col2:
+                        if done_list[i]:
+                            st.markdown(f"~~{task}~~")
+                        else:
+                            st.markdown(task)
+
+                    new_done_list.append(done_list[i])
 
                 st.session_state.planner[week]["days"][day]["done"] = new_done_list
